@@ -1,0 +1,36 @@
+library(Matrix)
+library(data.table)
+
+# Define input directory
+matrix_dir <- "results/starsolo/Solo.out/Gene/raw"
+
+# Read STARsolo matrix
+counts <- readMM(file.path(matrix_dir, "umiDedup-1MM_Directional.mtx"))
+
+# Read feature and barcode information
+features <- fread(file.path(matrix_dir, "features.tsv"),
+                  header = FALSE)
+
+barcodes <- fread(file.path(matrix_dir, "barcodes.tsv"),
+                  header = FALSE)
+
+# Validate dimensions
+stopifnot(nrow(counts) == nrow(features))
+stopifnot(ncol(counts) == nrow(barcodes))
+
+# Assign gene and sample names
+rownames(counts) <- make.unique(as.character(features$V2))
+colnames(counts) <- as.character(barcodes$V1)
+
+# Convert to dense matrix and save
+counts_dense <- as.matrix(counts)
+
+dir.create("results", showWarnings = FALSE)
+
+fwrite(as.data.table(counts_dense, keep.rownames = "gene"),
+       "results/umi_counts.txt",
+       sep = "\t")
+
+cat("Conversion completed successfully!\n")
+cat("Genes:", nrow(counts), "\n")
+cat("Samples:", ncol(counts), "\n")
