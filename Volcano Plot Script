@@ -1,0 +1,56 @@
+.libPaths(c("~/R/library", .libPaths()))
+
+library(DESeq2)
+library(ggplot2)
+
+# Set working directory
+setwd("/scratch/Omics_in_practice/Steve_Makalew/brbseq/downstream")
+
+# Load fitted DESeq2 dataset
+dds <- readRDS("results/dds_fitted.rds")
+
+# NRF1 Ensembl gene ID
+gene_to_plot <- "ENSG00000106459.16"
+
+# Extract normalized counts
+count_df <- plotCounts(
+  dds,
+  gene = gene_to_plot,
+  intgroup = "condition",
+  returnData = TRUE
+)
+
+# Order timepoints
+count_df$condition <- factor(
+  count_df$condition,
+  levels = c("0h", "6h", "1d", "2d", "3d", "4d", "7d", "8d")
+)
+
+# Create plot
+p_count <- ggplot(
+  count_df,
+  aes(x = condition, y = count, color = condition)
+) +
+  geom_point(
+    position = position_jitter(width = 0.08),
+    size = 3
+  ) +
+  scale_y_log10() +
+  theme_bw() +
+  labs(
+    title = "NRF1 expression across timepoints",
+    x = "Timepoint",
+    y = "Normalized count (log scale)",
+    color = "Timepoint"
+  )
+
+# Save plot
+ggsave("figures/NRF1_normalized_counts.pdf",
+       p_count, width = 7, height = 5)
+
+ggsave("figures/NRF1_normalized_counts.png",
+       p_count, width = 7, height = 5, dpi = 300)
+
+print(p_count)
+
+cat("NRF1 normalized-count plot saved successfully.\n")
