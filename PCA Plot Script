@@ -1,0 +1,53 @@
+
+.libPaths(c("~/R/library", .libPaths()))
+
+library(DESeq2)
+library(ggplot2)
+library(data.table)
+
+# Load prefiltered dataset
+dds <- readRDS("results/dds_prefiltered.rds")
+
+# Variance-stabilizing transformation
+vsd <- vst(dds, blind = TRUE)
+vsd_mat <- assay(vsd)
+
+# PCA using the 500 most variable features
+pca_data <- plotPCA(
+  vsd,
+  intgroup = "condition",
+  returnData = TRUE,
+  ntop = 500
+)
+
+percent_var <- round(100 * attr(pca_data, "percentVar"))
+
+# Create simple sample labels
+pca_data$sample_label <- paste("Sample", seq_len(nrow(pca_data)))
+
+p_pca <- ggplot(
+  pca_data,
+  aes(PC1, PC2, color = condition, label = sample_label)
+) +
+  geom_point(size = 3) +
+  geom_text(size = 2.5, vjust = -0.8) +
+  xlab(paste0("PC1: ", percent_var[1], "% variance")) +
+  ylab(paste0("PC2: ", percent_var[2], "% variance")) +
+  coord_equal() +
+  theme_bw() +
+  labs(
+    title = "PCA of Drug-Treated K562 Cells",
+    color = "Timepoint"
+  )
+
+# Save outputs
+ggsave("figures/PCA_samples.pdf", p_pca, width = 7, height = 5.5)
+
+fwrite(
+  pca_data,
+  "results/PCA_coordinates.tsv",
+  sep = "\t"
+)
+
+cat("PCA completed successfully.\n")
+cat("Transformation: vst(blind = TRUE)\n")
